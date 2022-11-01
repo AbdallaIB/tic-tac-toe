@@ -1,0 +1,174 @@
+.blink {
+    -webkit-animation: blinker 1.5s linear infinite;
+    animation        : blinker 1.5s linear infinite;
+}
+
+@-webkit-keyframes blinker {
+    50% {
+        opacity: 0;
+    }
+}
+
+@keyframes blinker {
+    50% {
+        opacity: 0;
+    }
+}
+
+.board {
+    clear   : both;
+    float   : none;
+    overflow: hidden;
+    position: relative;
+}
+
+.board .col {
+    float     : left;
+    text-align: center;
+    width     : 33.000012313133%;
+    height    : 120px;
+    cursor    : pointer;
+    color     : #fff;
+    font-size : 90px;
+}
+
+.row-1 {
+    position     : absolute;
+    background   : #badc58;
+    border-radius: 4px;
+    width        : 100%;
+    height       : 10px;
+    top          : 15%
+}
+
+.row-2 {
+    position     : absolute;
+    background   : #badc58;
+    border-radius: 4px;
+    width        : 100%;
+    height       : 10px;
+    top          : 50%
+}
+
+.row-3 {
+    position     : absolute;
+    background   : #badc58;
+    border-radius: 4px;
+    width        : 100%;
+    height       : 10px;
+    top          : 83%
+}
+
+.column-1 {
+    position     : absolute;
+    background   : #badc58;
+    border-radius: 4px;
+    height       : 100%;
+    width        : 4px;
+    left         : 15%;
+}
+
+.column-2 {
+    height       : 100%;
+    width        : 4px;
+    top          : 50%;
+    position     : absolute;
+    background   : #badc58;
+    border-radius: 4px;
+}
+
+.column-3 {
+    height       : 100%;
+    width        : 4px;
+    left         : 83%;
+    position     : absolute;
+    background   : #badc58;
+    border-radius: 4px;
+}
+
+.diagonal-1 {
+    position         : absolute;
+    background       : #badc58;
+    border-radius    : 4px;
+    width            : 90%;
+    height           : 4px;
+    top              : 50%;
+    left             : 5%;
+    -webkit-transform: skewY(45deg);
+    -ms-transform    : skewY(45deg);
+    transform        : skewY(45deg);
+}
+
+.diagonal-2 {
+    position         : absolute;
+    background       : #badc58;
+    border-radius    : 4px;
+    width            : 90%;
+    height           : 4px;
+    top              : 50%;
+    left             : 5%;
+    -webkit-transform: skewY(-45deg);
+    -ms-transform    : skewY(-45deg);
+    transform        : skewY(-45deg);
+}
+
+.input::-webkit-input-placeholder {
+    color: white;
+}
+
+.input::-moz-placeholder {
+    color: white;
+}
+
+.input:-ms-input-placeholder {
+    color: white;
+}
+
+.input::-ms-input-placeholder {
+    color: white;
+}
+
+.input::placeholder {
+    color: white;
+}
+
+.board {
+    clear                : both;
+    float                : none;
+    overflow             : hidden;
+    gap                  : 1rem;
+    display              : -webkit-box;
+    display              : -ms-flexbox;
+    display              : flex;
+    margin               : 10px auto;
+    -webkit-box-orient   : vertical;
+    -webkit-box-direction: normal;
+    -ms-flex-direction   : column;
+    flex-direction       : column;
+    -webkit-box-align    : center;
+    -ms-flex-align       : center;
+    align-items          : center;
+    -webkit-box-pack     : justify;
+    -ms-flex-pack        : justify;
+    justify-content      : space-between;
+}
+
+.board .col {
+    float            : left;
+    text-align       : center;
+    width            : 33.000012313133%;
+    height           : 120px;
+    border           : 6px solid #eee;
+    cursor           : pointer;
+    color            : #fff;
+    font-size        : 90px;
+    display          : -webkit-box;
+    display          : -ms-flexbox;
+    display          : flex;
+    -webkit-box-pack : center;
+    -ms-flex-pack    : center;
+    justify-content  : center;
+    -webkit-box-align: center;
+    -ms-flex-align   : center;
+    align-items      : center;
+}
