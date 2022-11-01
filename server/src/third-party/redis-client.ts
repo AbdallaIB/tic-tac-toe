@@ -1,8 +1,22 @@
-import * as redis from 'redis';
+import { createClient } from 'redis';
 const moduleName = '[redis-client] ';
 import loggerHandler from '@utils/logger';
 const logger = loggerHandler(moduleName);
-const RedisClient = redis.createClient();
+
+let RedisClient;
+if (process.env.NODE_ENV === 'production') {
+  const host = process.env.REDIS_HOST;
+  const port = Number(process.env.REDIS_PORT);
+  const username = process.env.REDIS_USERNAME;
+  const password = process.env.REDIS_PASSWORD;
+  const url = `${username}:${password}@${host}:${port}`;
+
+  RedisClient = createClient({
+    url,
+  });
+} else {
+  RedisClient = createClient();
+}
 
 export const connectRedis = () => {
   RedisClient.connect();
