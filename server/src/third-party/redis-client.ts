@@ -7,21 +7,15 @@ const logger = loggerHandler(moduleName);
 let RedisClient;
 if (config.node_env === 'production') {
   const host = config.redis_config.host;
-  const port = config.redis_config.port;
+  const port = Number(config.redis_config.port);
   const username = config.redis_config.username;
   const password = config.redis_config.password;
-  const url = `${username}:${password}@${host}:${port}`;
+  const url = `redis://${username}:${password}@${host}:${port}`;
 
-  RedisClient = createClient({
-    url,
-  });
+  RedisClient = createClient(url, { tls: {} });
 } else {
   RedisClient = createClient();
 }
-
-export const connectRedis = () => {
-  RedisClient.connect();
-};
 
 RedisClient.on('connect', function () {
   logger.info('Connected successfully.');
