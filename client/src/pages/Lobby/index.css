@@ -1,0 +1,47 @@
+.loading:before {
+    -webkit-animation: dots 2s linear infinite;
+            animation: dots 2s linear infinite;
+    content  : '';
+}
+
+@-webkit-keyframes dots {
+
+    0%,
+    20% {
+        content: '.';
+    }
+
+    40% {
+        content: '..';
+    }
+
+    60% {
+        content: '...';
+    }
+
+    90%,
+    100% {
+        content: '';
+    }
+}
+
+@keyframes dots {
+
+    0%,
+    20% {
+        content: '.';
+    }
+
+    40% {
+        content: '..';
+    }
+
+    60% {
+        content: '...';
+    }
+
+    90%,
+    100% {
+        content: '';
+    }
+}
