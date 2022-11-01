@@ -8,6 +8,7 @@ import { Server } from 'socket.io';
 import * as fs from 'fs';
 import * as https from 'https';
 import * as http from 'http';
+import '@config/config';
 import { useSocketServer } from 'socket-controllers';
 
 app.use(express.static(__dirname, { dotfiles: 'allow' }));
