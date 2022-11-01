@@ -11,6 +11,11 @@ import * as https from 'https';
 import * as http from 'http';
 import '@config/config';
 import { useSocketServer } from 'socket-controllers';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// init dotenv
+config({ path: resolve('.env') });
 
 app.use(express.static(__dirname, { dotfiles: 'allow' }));
 
