@@ -1,0 +1,14 @@
+.progress {
+    background-color        : #291840;
+    height                  : 10px;
+    border-radius           : 1rem;
+    -webkit-transition      : 0.9s ease;
+    transition              : 0.9s ease;
+    -webkit-transition-delay: 0.5s;
+    transition-delay        : 0.5s;
+}
+
+.progress-div {
+    background-color: #F2F2F2;
+    border-radius   : .5rem;
+}
