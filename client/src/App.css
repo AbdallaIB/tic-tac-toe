@@ -84,3 +84,11 @@
         transform        : rotate(360deg);
     }
 }
+
+.fill-available-height {
+    height: -webkit-fill-available;
+}
+
+.fill-available-width {
+    width: -webkit-fill-available;
+}
