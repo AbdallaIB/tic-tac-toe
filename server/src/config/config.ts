@@ -2,7 +2,9 @@ import * as path from 'path';
 import { core } from '@config/env/core';
 import * as dotenv from 'dotenv';
 
-dotenv.config({ path: path.resolve('.env') });
+const envPath = path.join(core.root, `.env`);
+
+dotenv.config({ path: envPath });
 
 // load configurations
 // set the node environment variable if not set before
