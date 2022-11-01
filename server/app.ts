@@ -12,9 +12,6 @@ import * as http from 'http';
 import '@config/config';
 import { useSocketServer } from 'socket-controllers';
 
-// Init redis
-connectRedis();
-
 app.use(express.static(__dirname, { dotfiles: 'allow' }));
 
 if (process.env.SECURE_ENABLED === 'true') {
@@ -41,6 +38,9 @@ if (process.env.SECURE_ENABLED === 'true') {
     },
   });
 
+  // Init redis
+  connectRedis();
+
   useSocketServer(socket, { controllers: [__dirname + '/src/controllers/socket.ts'] }); // socket.io engine params , {"pingInterval": 2000, "pingTimeout": 5000}
 } else {
   const httpServer = http.createServer(app);
@@ -54,6 +54,9 @@ if (process.env.SECURE_ENABLED === 'true') {
       methods: ['GET', 'POST'],
     },
   });
+
+  // Init redis
+  connectRedis();
 
   useSocketServer(socket, { controllers: [__dirname + '/src/controllers/socket.ts'] }); // socket.io engine params , {"pingInterval": 2000, "pingTimeout": 5000}
 }

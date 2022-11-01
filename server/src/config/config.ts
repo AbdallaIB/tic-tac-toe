@@ -1,6 +1,6 @@
 import * as path from 'path';
-
-const dotenv = require('dotenv');
+import { core } from '@config/env/core';
+import * as dotenv from 'dotenv';
 
 dotenv.config({ path: path.resolve('.env') });
 
@@ -14,5 +14,6 @@ process.on('uncaughtException', function (err) {
 });
 
 // extend the base configuration in core.js with environment specific configuration
+export { core as config };
 
 console.info(`_______________________________(${process.env.NODE_ENV} environment)_______________________________`);

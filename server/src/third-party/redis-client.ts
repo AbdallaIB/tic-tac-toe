@@ -1,14 +1,15 @@
 import { createClient } from 'redis';
+import { config } from '@config/config';
 const moduleName = '[redis-client] ';
 import loggerHandler from '@utils/logger';
 const logger = loggerHandler(moduleName);
 
 let RedisClient;
-if (process.env.NODE_ENV === 'production') {
-  const host = process.env.REDIS_HOST;
-  const port = Number(process.env.REDIS_PORT);
-  const username = process.env.REDIS_USERNAME;
-  const password = process.env.REDIS_PASSWORD;
+if (config.node_env === 'production') {
+  const host = config.redis_config.host;
+  const port = config.redis_config.port;
+  const username = config.redis_config.username;
+  const password = config.redis_config.password;
   const url = `${username}:${password}@${host}:${port}`;
 
   RedisClient = createClient({
