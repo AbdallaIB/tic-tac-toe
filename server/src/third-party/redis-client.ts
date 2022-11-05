@@ -27,7 +27,7 @@ RedisClient.on('error', function (err) {
 
 export const setHashMap = async (key: string, field: string, val: any, cb: (success: boolean) => void) => {
   try {
-    await RedisClient.hSet(key, field, val);
+    await RedisClient.hmset(key, field, val);
     return cb(true);
   } catch (err) {
     logger.error('[setHashMap][e]', err.message);
@@ -37,7 +37,7 @@ export const setHashMap = async (key: string, field: string, val: any, cb: (succ
 
 export const deleteHashMap = async (key: string, field: string) => {
   try {
-    await RedisClient.hDel(key, field);
+    await RedisClient.del(key, field);
   } catch (err) {
     logger.error('[deleteHashMap][e]', err.message);
   }
@@ -45,7 +45,7 @@ export const deleteHashMap = async (key: string, field: string) => {
 
 export const getHashMap = async (key: string, field: string, cb: (success: boolean, data: string[]) => void) => {
   try {
-    const data = await RedisClient.hmGet(key, field);
+    const data = await RedisClient.hmget(key, field);
     if (!data) {
       return cb(false, []);
     }
