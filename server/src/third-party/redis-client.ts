@@ -4,6 +4,8 @@ const moduleName = '[redis-client] ';
 import loggerHandler from '@utils/logger';
 const logger = loggerHandler(moduleName);
 
+type Result = { success: boolean; data?: any | null; msg?: string };
+
 let RedisClient;
 if (config.node_env === 'production') {
   const host = config.redis_config.host;
@@ -25,33 +27,38 @@ RedisClient.on('error', function (err) {
   logger.info('[error]', err);
 });
 
-export const setHashMap = async (key: string, field: string, val: any, cb: (success: boolean) => void) => {
-  try {
-    await RedisClient.hmset(key, field, val);
-    return cb(true);
-  } catch (err) {
-    logger.error('[setHashMap][e]', err.message);
-    return cb(false);
-  }
+export const setHashMap = async (key: string, field: string, val: any) => {
+  return new Promise<Result>((resv, rej) => {
+    RedisClient.hmset(key, field, val, (e) => {
+      if (e) {
+        logger.error('[setHashMap][e]', e.message);
+        return rej({ success: false, data: null, msg: e.message });
+      }
+      resv({ success: true });
+    });
+  });
 };
 
 export const deleteHashMap = async (key: string, field: string) => {
-  try {
-    await RedisClient.del(key, field);
-  } catch (err) {
-    logger.error('[deleteHashMap][e]', err.message);
-  }
+  return new Promise<Result>((resv, rej) => {
+    RedisClient.hdel(key, field, (e) => {
+      if (e) {
+        logger.error('[deleteHashMap][e]', e.message);
+        return rej({ success: false, data: null, msg: e.message });
+      }
+      resv({ success: true });
+    });
+  });
 };
 
-export const getHashMap = async (key: string, field: string, cb: (success: boolean, data: string[]) => void) => {
-  try {
-    const data = await RedisClient.hmget(key, field);
-    if (!data) {
-      return cb(false, []);
-    }
-    return cb(true, data);
-  } catch (err) {
-    logger.error('[getHashMap][e]', err.message);
-    return cb(false, []);
-  }
+export const getHashMap = async (key: string, field: string) => {
+  return new Promise<Result>((resv, rej) => {
+    RedisClient.hmget(key, field, (e, data) => {
+      if (e) {
+        logger.error('[getHashMap][e]', e.message);
+        resv({ success: false, data: null, msg: e.message });
+      }
+      resv({ success: data && data[0], data: data && data[0] ? data[0] : null });
+    });
+  });
 };
