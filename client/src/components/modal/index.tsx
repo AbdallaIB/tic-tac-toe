@@ -55,17 +55,14 @@ const Modals = ({
     >
       <header className="header">
         <h2 className="font-medium"> {title} </h2>
-        <button className="h-full text-2xl" onClick={() => cancel()}>
-          <i className="bx bx-x"></i>
-        </button>
       </header>
       <main className={'flex flex-col items-center justify-center w-full mt-4'} style={{ height: '85%' }}>
         {children}
       </main>
       {hasFooter && (
         <footer className="footer justify-center">
-          {hasCancelButton && <Button onClick={() => cancel()}>Cancel</Button>}
-          <Button onClick={() => confirm()}>{confirmText}</Button>
+          {hasCancelButton && <Button onClick={cancel}>Cancel</Button>}
+          <Button onClick={confirm}>{confirmText}</Button>
         </footer>
       )}
     </Modal>
