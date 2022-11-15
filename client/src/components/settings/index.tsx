@@ -5,6 +5,7 @@ import IconButton from '@components/shared/icon-button';
 import Modal from '@components/modal';
 import useModal from '@lib/hooks/useModal';
 import { useRouter } from '@lib/hooks/useRouter';
+import useGameStore from '@lib/store/game';
 
 interface Props {
   fullScreenToggle: () => void;
@@ -32,10 +33,13 @@ export const showMenu = {
 const Settings = ({ fullScreenHandle, fullScreenToggle }: Props) => {
   const { navigate } = useRouter();
   const { isModalOpen, setIsModalOpen } = useModal();
+  const { gameEvents, setGameEvents, clearStore } = useGameStore();
   const [shown, setShown] = useState(false);
   const [sound, setSound] = useState(false);
 
   const handleLeaveGame = () => {
+    setGameEvents({ ...gameEvents, isGameStarted: false, isInRoom: false });
+    clearStore();
     navigate('/');
     setIsModalOpen(false);
   };
@@ -72,7 +76,7 @@ const Settings = ({ fullScreenHandle, fullScreenToggle }: Props) => {
         isOpen={isModalOpen}
         title={'Leave Game'}
         cancel={() => setIsModalOpen(false)}
-        confirm={() => handleLeaveGame}
+        confirm={handleLeaveGame}
         confirmText="Leave"
       >
         <div className="text-2xl m-12 whitespace-nowrap">
@@ -84,3 +88,6 @@ const Settings = ({ fullScreenHandle, fullScreenToggle }: Props) => {
 };
 
 export default Settings;
+function useAuthStore(): { setIsOpen: any } {
+  throw new Error('Function not implemented.');
+}

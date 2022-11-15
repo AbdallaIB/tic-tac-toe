@@ -1,14 +1,14 @@
-import { ChangeEvent, FormEvent, useState, useContext } from 'react';
+import { ChangeEvent, FormEvent, useState } from 'react';
 import styled from 'styled-components';
 import gameService from '@services/GameService';
 import socketService from '@services/SocketService';
-import gameContext from '@context/gameContext';
 import { useRouter } from '@lib/hooks/useRouter';
 import Button from '@components/shared/button';
 import IconButton from '@components/shared/icon-button';
 import Input from '@components/shared/input';
 import './game.css';
 import useToast from '@lib/hooks/useToast';
+import useGameStore from '@lib/store/game';
 
 const JoinRoomContainer = styled.div`
   width: 100%;
@@ -23,7 +23,8 @@ const JoinRoomContainer = styled.div`
 const JoinRoom = () => {
   const toast = useToast();
   const router = useRouter();
-  const { setGameEvents, setMyPlayer, setOtherPlayer, setGameConfig, gameConfig } = useContext(gameContext);
+  const { setGameEvents, setMyPlayer, setOtherPlayer, setGameConfig, gameConfig, myPlayer, otherPlayer, gameEvents } =
+    useGameStore();
   const [roomId, setRoomId] = useState('');
   const [isJoining, setJoining] = useState(false);
 
@@ -54,38 +55,25 @@ const JoinRoom = () => {
 
     players.forEach((player) => {
       if (player.uId === myId) {
-        setMyPlayer((prev: any) => {
-          return { ...prev, ...player, isComputer: false };
-        });
+        setMyPlayer({ ...myPlayer, ...player, isComputer: false });
       } else {
-        setOtherPlayer((prev: any) => {
-          return { ...prev, ...player, isComputer: false };
-        });
+        setOtherPlayer({ ...otherPlayer, ...player, isComputer: false });
       }
     });
 
-    setGameConfig((prev: any) => {
-      return {
-        ...prev,
-        roomId: id,
-        gameType: 'online',
-        playerMode: 'multi',
-      };
-    });
+    setGameConfig({ ...gameConfig, roomId: id, gameType: 'online', playerMode: 'multi' });
 
     console.log('joined', joined);
 
     if (joined) {
-      setGameEvents((prev: any) => {
-        return {
-          ...prev,
-          isInRoom: true,
-        };
+      setGameEvents({
+        ...gameEvents,
+        isInRoom: true,
       });
 
       setJoining(false);
 
-      router.navigate('/game', { state: gameConfig });
+      router.navigate('/online', { state: gameConfig });
     }
   };
 

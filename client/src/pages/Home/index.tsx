@@ -1,12 +1,12 @@
 import Button from '@components/shared/button';
 import IconButton from '@components/shared/icon-button';
-import gameContext, { GameConfig } from '@context/gameContext';
 import { useRouter } from '@lib/hooks/useRouter';
-import { useContext, useState } from 'react';
+import useGameStore, { GameConfig } from '@lib/store/game';
+import { useState } from 'react';
 
 const Home = () => {
   const router = useRouter();
-  const { gameConfig, setGameConfig } = useContext(gameContext);
+  const { gameConfig, setGameConfig } = useGameStore();
   const [hasSetGameType, setHasSetGameType] = useState(false);
 
   const handleGameConfig = (prop: string, value: string, navigate: boolean) => {

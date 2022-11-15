@@ -1,18 +1,12 @@
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import _ from 'lodash';
 import './game.css';
-import gameContext, { GameConfig, GameEvents } from '@context/gameContext';
 import { O, PlayerCard, X } from '@components/player';
 import { useRouter } from '@lib/hooks/useRouter';
 import { winLines } from '@components/game';
+import useGameStore, { GameConfig, Player } from '@lib/store/game';
 
 export type Symbol = 'x' | 'o' | null;
-
-type player = {
-  color: string;
-  symbol: Symbol;
-  isComputer: boolean;
-};
 
 interface State {
   type: 'single' | 'multi';
@@ -20,8 +14,8 @@ interface State {
   winner: Symbol;
   player: Symbol;
   winnerIndex: number[] | null;
-  p2: player;
-  p1: player;
+  p2: Player;
+  p1: Player;
   board: Array<Symbol>;
   winLines: number[][];
 }
@@ -31,12 +25,13 @@ const Offline = () => {
   const {
     myPlayer: { color, username, symbol, isComputer },
     otherPlayer,
+    gameEvents,
     setGameEvents,
     setMyPlayer,
     setOtherPlayer,
     scores,
     setScores,
-  } = useContext(gameContext);
+  } = useGameStore();
   const [state, setState] = useState<State>({
     type: 'single',
     currentTurn: 'x',
@@ -44,11 +39,15 @@ const Offline = () => {
     player: null,
     winnerIndex: null,
     p2: {
+      uId: '',
+      username: '',
       color: '',
       symbol: 'x',
       isComputer: true,
     },
     p1: {
+      uId: '',
+      username: '',
       color: '',
       symbol: 'o',
       isComputer: false,
@@ -58,11 +57,10 @@ const Offline = () => {
   });
   const [resetting, setResetting] = useState(false);
   const [result, setResult] = useState('');
+
   useEffect(() => {
-    setGameEvents((prev: GameEvents) => {
-      return { ...prev, isInRoom: true };
-    });
-    const state = router.location.state as { gameConfig: GameConfig; myPlayer: player; otherPlayer: player };
+    setGameEvents({ ...gameEvents, isInRoom: true });
+    const state = router.location.state as { gameConfig: GameConfig; myPlayer: Player; otherPlayer: Player };
     setState((prev: State) => {
       return {
         ...prev,
@@ -81,6 +79,7 @@ const Offline = () => {
         type: state.gameConfig.playerMode,
       };
     });
+
     setOtherPlayer(state.otherPlayer);
     setMyPlayer(state.myPlayer);
     console.log('state', state);

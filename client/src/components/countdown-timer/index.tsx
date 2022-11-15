@@ -1,5 +1,5 @@
-import gameContext from '@context/gameContext';
-import { useContext, useEffect, useState } from 'react';
+import useGameStore from '@lib/store/game';
+import { useEffect, useState } from 'react';
 
 interface ICountdown {
   hours: number;
@@ -10,10 +10,10 @@ interface ICountdown {
 const CountDownTimer = ({
   hours = 0,
   minutes = 2,
-  seconds = 60,
+  seconds = 0,
   onTimerEnd,
 }: ICountdown & { onTimerEnd: () => void }) => {
-  const { setGameEvents } = useContext(gameContext);
+  const { setGameEvents, gameEvents } = useGameStore();
   const [time, setTime] = useState<ICountdown>({ hours, minutes, seconds });
 
   const tick = () => {
@@ -27,7 +27,10 @@ const CountDownTimer = ({
   const reset = () => {
     setTime({ hours: time.hours, minutes: time.minutes, seconds: time.seconds });
     onTimerEnd();
-    setGameEvents((prev: any) => ({ ...prev, isGameOver: true }));
+    setGameEvents({
+      ...gameEvents,
+      isGameOver: true,
+    });
   };
 
   useEffect(() => {

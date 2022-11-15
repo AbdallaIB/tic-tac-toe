@@ -1,38 +1,39 @@
 import { PlayerCard } from '@components/player';
 import Button from '@components/shared/button';
 import IconButton from '@components/shared/icon-button';
-import gameContext, { GameConfig } from '@context/gameContext';
 import { generateColor } from '@lib/hooks/useRandomColor';
 import { useRouter } from '@lib/hooks/useRouter';
 import useToast from '@lib/hooks/useToast';
+import useGameStore, { GameConfig } from '@lib/store/game';
 import gameService from '@services/GameService';
 import socketService from '@services/SocketService';
-import { useContext, useEffect } from 'react';
+import { useEffect } from 'react';
 import './index.css';
 
 const Lobby = () => {
   const { success, error } = useToast();
   const router = useRouter();
   const {
-    myPlayer: { color, username, symbol },
+    myPlayer,
     otherPlayer,
     setGameEvents,
     setGameConfig,
     gameConfig,
+    gameEvents,
     setMyPlayer,
     setOtherPlayer,
-  } = useContext(gameContext);
+    clearStore,
+  } = useGameStore();
 
   useEffect(() => {
     const state = router.location.state as GameConfig;
     console.log(router.location.state, gameConfig);
-    if (gameConfig.gameType !== state.gameType) {
+    if (!gameConfig || gameConfig.gameType !== state.gameType) {
+      clearStore();
       router.navigate('/');
     }
     if (gameConfig.gameType === 'online') {
-      setOtherPlayer((prev: any) => {
-        return { ...prev, isComputer: false };
-      });
+      setOtherPlayer({ ...otherPlayer, isComputer: false });
       handleUserJoined();
       handleStartGame();
       createRoom();
@@ -46,52 +47,51 @@ const Lobby = () => {
 
   const createRoom = async () => {
     const socket = socketService.socket;
-    console.log('1');
     if (!socket) return;
-    console.log('2');
 
-    const created = await gameService.createGameRoom(socket).catch((err) => {
+    const room = await gameService.createGameRoom(socket).catch((err) => {
       console.log('Error: ', err);
       error(err ? err.message : 'Something went wrong');
     });
-    if (!created) return;
+    if (!room) return;
+    const myId = socketService.socket?.id;
 
-    const { id, players } = created;
+    const { id, players } = room;
 
-    setGameConfig((prev: any) => {
-      return {
-        ...prev,
-        roomId: id,
-        gameType: 'online',
-        playerMode: 'multi',
-      };
+    players.forEach((player) => {
+      if (player.uId === myId) {
+        setMyPlayer({ ...player, isComputer: false });
+      } else {
+        setOtherPlayer({ ...player, isComputer: false });
+      }
     });
 
-    setMyPlayer((prev: any) => {
-      return { ...prev, ...players[0], isComputer: false };
-    });
-    console.log('created', created, gameConfig);
+    setGameConfig({ ...gameConfig, roomId: id, gameType: 'online', playerMode: 'multi' });
+
+    console.log('created', room, gameConfig);
   };
 
   const handleStartGame = () => {
     const socket = socketService.socket;
     if (socket)
-      gameService.onStartGame(socket, (options) => {
-        console.log('start game', options, symbol);
-        setGameEvents((prev: any) => {
-          return {
-            isPlayerTurn: options.symbol === symbol,
-            isInRoom: true,
-            isGameStarted: true,
-          };
+      gameService.onStartGame(socket, (data) => {
+        const { id, players } = data.room;
+
+        console.log('start game', myPlayer, otherPlayer);
+        setGameEvents({
+          ...gameEvents,
+          isPlayerTurn: data.symbol === myPlayer.symbol,
+          isInRoom: true,
+          isGameStarted: true,
         });
-        setMyPlayer((prev: any) => {
-          return {
-            ...prev,
-            symbols: options.symbol,
-          };
+        players.forEach((player) => {
+          if (player.uId === socket.id) {
+            setMyPlayer({ ...player, isComputer: false });
+          } else {
+            setOtherPlayer({ ...player, isComputer: false });
+          }
         });
-        router.navigate('/game', { state: gameConfig });
+        router.navigate('/online', { state: gameConfig });
       });
   };
 
@@ -101,27 +101,21 @@ const Lobby = () => {
       gameService.onUserJoined(socket, (room) => {
         console.log('onUserJoined', room);
         room.players.forEach((player) => {
-          if (player.username !== username) {
-            setOtherPlayer((prev: any) => {
-              return { ...prev, ...player, isComputer: false };
-            });
+          if (player.username !== myPlayer.username) {
+            setOtherPlayer({ ...player, isComputer: false });
           }
         });
       });
   };
 
   const changeColors = async (type: 'swap' | 'renew') => {
-    setMyPlayer((prev: any) => {
-      return {
-        ...prev,
-        color: type === 'renew' ? generateColor([prev.color, otherPlayer.color]) : otherPlayer.color,
-      };
+    setMyPlayer({
+      ...myPlayer,
+      color: type === 'renew' ? generateColor([myPlayer.color, otherPlayer.color]) : otherPlayer.color,
     });
-    setOtherPlayer((prev: any) => {
-      return {
-        ...otherPlayer,
-        color: type === 'renew' ? generateColor([prev.color, color]) : color,
-      };
+    setOtherPlayer({
+      ...otherPlayer,
+      color: type === 'renew' ? generateColor([myPlayer.color, otherPlayer.color]) : myPlayer.color,
     });
   };
 
@@ -131,14 +125,12 @@ const Lobby = () => {
   };
 
   const handleStartOfflineGame = () => {
-    setGameEvents((prev: any) => {
-      return {
-        ...prev,
-        isGameStarted: true,
-      };
+    setGameEvents({
+      ...gameEvents,
+      isGameStarted: true,
     });
     router.navigate('/offline', {
-      state: { gameConfig, myPlayer: { color, username, symbol, isComputer: false }, otherPlayer },
+      state: { gameConfig, myPlayer, otherPlayer },
     });
   };
 
@@ -161,7 +153,13 @@ const Lobby = () => {
         </>
       )}
       <div className="flex flex-row justify-evenly">
-        <PlayerCard color={color} symbol={symbol} username={username} isComputer={false} isPlayer1={true}></PlayerCard>
+        <PlayerCard
+          color={myPlayer.color}
+          symbol={myPlayer.symbol}
+          username={myPlayer.username}
+          isComputer={false}
+          isPlayer1={true}
+        ></PlayerCard>
         <div className="flex flex-col items-center justify-center gap-4">
           <span className="text-5xl font-black text-white">VS</span>
           {gameConfig.gameType === 'offline' && (
