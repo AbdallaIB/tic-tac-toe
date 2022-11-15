@@ -62,7 +62,6 @@
      word-break       : break-word;
      padding          : 0;
      border-radius    : 50%;
-     font-family      : Arial, Helvetica, sans-serif;
  }
 
  @media (min-width: 320px) {

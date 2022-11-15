@@ -1,6 +1,6 @@
 import 'emoji-mart/css/emoji-mart.css';
 import { BaseEmoji, Picker } from 'emoji-mart';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useState, KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
 import { showMenu } from '@components/settings';
 import socketService from '@services/SocketService';
@@ -10,8 +10,10 @@ import IconButton from '@components/shared/icon-button';
 import { useRouter } from '@lib/hooks/useRouter';
 import './index.css';
 import useToast from '@lib/hooks/useToast';
+import useGameStore from '@lib/store/game';
+import theme from '@styles/shared/theme';
 
-const messageInput = {
+const messageInputStyle = {
   height: '30px',
   fontSize: '15px',
   outline: 'none',
@@ -23,54 +25,97 @@ const messageInput = {
 const Chat = () => {
   const toast = useToast();
   const router = useRouter();
+  const {
+    setGameEvents,
+    gameEvents,
+    gameConfig: { roomId },
+    myPlayer,
+    otherPlayer,
+    clearStore,
+  } = useGameStore();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [message, setMessage] = useState('');
+  const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [showChat, setShowChat] = useState(false);
+  const [notifications, setNotifications] = useState(0);
+
+  useEffect(() => {
+    console.log('chat mounted', myPlayer, otherPlayer);
+    handleMessageReceived();
+  }, []);
 
   const handleMessageChange = (e: ChangeEvent<any>) => {
     const value = e.target.value;
-    setMessage(value);
+    setMessageInput(value);
   };
 
   const addEmoji = (emojiData: BaseEmoji) => {
     if (emojiData.native && emojiData.native !== 'undefined') {
-      setMessage(message + emojiData.native);
+      setMessageInput(messageInput + emojiData.native);
     }
-    console.log(emojiData);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       sendMessage();
     }
   };
 
+  const handleMessageReceived = () => {
+    const socket = socketService.socket;
+    if (!socket) return;
+    chatService.onMessageReceived(socket, (message) => {
+      if (message.userId !== myPlayer.uId) addMessage(message);
+    });
+  };
+
+  const incrementNotifications = () => {
+    if (!showChat) {
+      setNotifications(notifications + 1);
+    } else {
+      setNotifications(0);
+    }
+    console.log('incremented notifications', showChat);
+  };
+
   const sendMessage = async () => {
-    if (message && message.match(/\S/)) {
+    if (messageInput && messageInput.match(/\S/)) {
       const socket = socketService.socket;
 
       if (!socket) return;
 
-      const msg = await chatService.sendMessage(socket, message).catch((err) => {
+      const msg = await chatService.sendMessage(socket, messageInput, roomId, myPlayer.username).catch((err) => {
         const message = err ? err.message : 'Something went wrong';
         console.log(err);
+        toast.error(message);
         if (message === 'Room not found.' || message === 'User not found.' || message === 'Message sending failed') {
+          setGameEvents({ ...gameEvents, isInRoom: false, isGameStarted: false });
+          clearStore();
           router.navigate('/');
         }
-        toast.error(message);
       });
       if (!msg) return;
+      addMessage(msg);
+    }
+  };
 
-      const createdAt = getTimestamp(msg.createdAt);
-      const lastMsg = messages[messages.length - 1];
-      if (lastMsg && lastMsg.createdAt && lastMsg.userId === msg.userId) {
+  const addMessage = (msg: Message) => {
+    console.log('message-addMessage', msg);
+    const createdAt = getTimestamp(msg.createdAt);
+    setMessages((prev: Message[]) => {
+      const messageExists = prev.find((m) => m.id === msg.id);
+      if (messageExists) return prev;
+      let lastMsg = prev[prev.length - 1];
+      if (lastMsg && lastMsg.userId === msg.userId && lastMsg.id !== msg.id) {
         (lastMsg.content as string[]).push(msg.content as string);
+        console.log('lastMsg', lastMsg.content);
         lastMsg.createdAt = createdAt.toString();
         lastMsg.formattedDate = formatAMPM(createdAt);
+        prev[prev.length - 1] = lastMsg;
+        return prev;
       } else {
-        setMessages([
-          ...messages,
+        return [
+          ...prev,
           {
             id: msg.id,
             color: msg.color,
@@ -81,11 +126,14 @@ const Chat = () => {
             createdAt: createdAt.toString(),
             formattedDate: formatAMPM(createdAt),
           },
-        ]);
+        ];
       }
-      setMessage('');
-      setShowEmojiPicker(false);
-    }
+    });
+    setMessageInput('');
+    setShowEmojiPicker(false);
+    const userId = socketService.socket && socketService.socket.id;
+    if (userId !== msg.userId && !showChat) incrementNotifications();
+    console.log('message-received', userId !== msg.userId, !showChat);
   };
 
   const getTimestamp = (date: string | number | Date) => {
@@ -107,7 +155,7 @@ const Chat = () => {
 
   return (
     <>
-      <motion.div className="relative">
+      <motion.div className="fixed left-8 bottom-8">
         <motion.ul
           variants={showMenu}
           initial="exit"
@@ -121,7 +169,7 @@ const Chat = () => {
                 <div className="chat_box flex flex-col py-4 px-2 w-full h-full">
                   <div className="w-full p-0 h-auto">
                     <div className="flex justify-start text-center relative items-center h-full py-2 w-full">
-                      <h1 className="font-semibold side-color w-full">Chat</h1>
+                      <h1 className="font-semibold side-color w-full text-xl">Chat</h1>
                     </div>
                   </div>
                   <div className="h-full flex flex-col justify-between">
@@ -144,15 +192,15 @@ const Chat = () => {
                           <div key={index} className={'messageDiv w-full flex flex-row pb-4'}>
                             <div className="flex w-full message">
                               <div className="iconWrapper flex items-start justify-center mt-4">
-                                <div className="prof" style={{ backgroundColor: msg.color }}>
+                                <div className="prof" style={{ backgroundColor: theme.colors.main }}>
                                   {msg.firstCharacter || msg.username.charAt(0).toUpperCase()}
                                 </div>
                               </div>
-                              <div className="GDhqjd">
+                              <div className="GDhqjd w-full">
                                 <span className="text-main_white dark:text-white" style={{ fontSize: '14px' }}>
                                   {msg.username}
                                 </span>
-                                <div className="Zmm6We">
+                                <div className="Zmm6We relative">
                                   <div className="flex flex-col gap-1.5 text-main_white dark:text-white">
                                     {(msg.content as string[]).map((item, index) => (
                                       <span key={index} className="oIy2qc">
@@ -161,7 +209,7 @@ const Chat = () => {
                                     ))}
                                   </div>
                                   <span
-                                    className="MuzmKe opacity-70 whitespace-nowrap flex items-end text-main_whitedark:text-white"
+                                    className="MuzmKe opacity-70 right-4 absolute whitespace-nowrap flex items-end text-main_whitedark:text-white"
                                     style={{ marginLeft: '10px' }}
                                   >
                                     {msg.formattedDate}
@@ -201,9 +249,9 @@ const Chat = () => {
                           <div className="flex items-center justify-center relative">
                             <input
                               className="h-full px-3 py-2 rounded-sm text-base w-full text-main_dark"
-                              style={messageInput}
+                              style={messageInputStyle}
                               placeholder="Type a message"
-                              value={message}
+                              value={messageInput}
                               onChange={handleMessageChange}
                               onKeyDown={handleKeyDown}
                             ></input>
@@ -227,7 +275,17 @@ const Chat = () => {
             </div>
           </div>
         </motion.ul>
-        <IconButton onClick={() => setShowChat(!showChat)}>
+        <IconButton
+          className="relative"
+          onClick={() => {
+            if (showChat) setNotifications(0);
+            setShowChat(showChat ? false : true);
+            console.log('showChat', showChat);
+          }}
+        >
+          <span className="flex items-center justify-center text-xs bg-red-500 h-4 w-4 absolute top-0 right-0 rounded-full">
+            {notifications}
+          </span>
           <i className="bx bx-conversation" style={{ fontSize: '1.75rem' }}></i>
         </IconButton>
       </motion.div>
