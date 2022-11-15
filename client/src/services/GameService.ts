@@ -1,4 +1,4 @@
-import { IBoard, IStartGame } from '@components/game/Online';
+import { IBoard, IStartGame, Symbol } from '@components/game/Online';
 import { Room } from '@models/room';
 import { Socket } from 'socket.io-client';
 
@@ -23,23 +23,31 @@ class GameService {
   }
 
   public async updateGame(socket: Socket, gameMatrix: IBoard) {
-    socket.emit('update_game', { matrix: gameMatrix });
+    socket.emit('update_game', { matrix: gameMatrix, socketId: socket.id });
   }
 
-  public async onGameUpdate(socket: Socket, listener: (matrix: IBoard) => void) {
-    socket.on('on_game_update', ({ matrix }) => listener(matrix));
+  public async onGameUpdate(socket: Socket, listener: (matrix: IBoard, socketId: string) => void) {
+    socket.on('on_game_update', ({ matrix, socketId }) => listener(matrix, socketId));
   }
 
   public async onStartGame(socket: Socket, listener: (options: IStartGame) => void) {
     socket.on('start_game', listener);
   }
 
-  public async gameWin(socket: Socket, { message, indexes }: { message: string; indexes: number[] }) {
-    socket.emit('game_win', { message, indexes });
+  public async gameWin(
+    socket: Socket,
+    { message, indexes, winner }: { message: string; indexes: number[]; winner: Symbol },
+  ) {
+    socket.emit('game_win', { message, indexes, winner });
   }
 
-  public async onGameWin(socket: Socket, listener: (message: string, indexes: number[]) => void) {
-    socket.on('on_game_win', ({ message, indexes }) => listener(message, indexes));
+  public async onGameWin(
+    socket: Socket,
+    listener: (message: string, indexes: number[], winner: Symbol, newPlayerTurn: Symbol) => void,
+  ) {
+    socket.on('on_game_win', ({ message, indexes, winner, newPlayerTurn }) =>
+      listener(message, indexes, winner, newPlayerTurn),
+    );
   }
 }
 

@@ -4,6 +4,7 @@ export interface Room {
   id: string;
   players: Array<Player>;
   messages: Array<Message>;
+  gameEndsAt: Date;
 }
 
 export interface Player {

@@ -43,6 +43,7 @@ export class MainController {
             color: generateColor(['']),
           },
         ],
+        gameEndsAt: new Date(Date.now() + 2 * 60 * 1000),
       };
       const { success } = await setHashMap('rooms', roomId, JSON.stringify(room));
       if (success) {
@@ -127,19 +128,43 @@ export class MainController {
       }
     });
 
-    socket.on('update_game', (message: any) => {
-      const gameRoom = this.getSocketRoomId(socket);
-      socket.to(gameRoom).emit('on_game_update', message);
+    socket.on('update_game', (data: any) => {
+      logger.info('[update_game]', data);
+      const gameRoomId = this.getSocketRoomId(socket);
+      console.log('gameRoom', gameRoomId);
+      io.to(gameRoomId).emit('on_game_update', data);
     });
 
-    socket.on('game_win', (message: any) => {
-      const gameRoom = this.getSocketRoomId(socket);
-      socket.to(gameRoom).emit('on_game_win', message);
+    socket.on('game_win', async (message: any) => {
+      logger.info('[game_win]', message);
+      const gameRoomId = this.getSocketRoomId(socket);
+      const { success, data } = await getHashMap('rooms', gameRoomId);
+      if (!success)
+        return socket.emit('room_join_error', {
+          message: 'Room is full please choose another room to play!',
+        });
+      const room: Room = JSON.parse(data);
+      if (!room) {
+        socket.emit('room_join_error', {
+          message: 'Room not found or is full!',
+        });
+        return;
+      }
+      const currentDate = new Date();
+      const gameEndsAt = new Date(room.gameEndsAt);
+      if (currentDate > gameEndsAt) {
+        socket.emit('on_game_win', {
+          message: 'Game has ended!',
+        });
+        return;
+      }
+      const { winner } = message;
+      io.to(gameRoomId).emit('on_game_win', { ...message, newPlayerTurn: winner === 'x' ? 'o' : 'x' });
     });
   }
 }
 
-const findWithAttr = (array, attr, value) => {
+const findWithAttr = (array: Array<Object>, attr: string, value: string) => {
   if (!array || !array.length) {
     return -1;
   }
