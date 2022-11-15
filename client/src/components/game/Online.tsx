@@ -1,25 +1,24 @@
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import gameService from '@services/GameService';
 import socketService from '@services/SocketService';
 import { O, PlayerCard, X } from '@components/player';
-import gameContext, { GameConfig } from '@context/gameContext';
 import { useRouter } from '@lib/hooks/useRouter';
 import Chat from '@components/chat';
 import './game.css';
 import _ from 'lodash';
-import Button from '@components/shared/button';
-import useModal from '@lib/hooks/useModal';
 import { winLines, winningCombinationClasses } from '@components/game';
+import useGameStore, { GameConfig, GameEvents } from '@lib/store/game';
+import { Room } from '@models/room';
 
 const GameContainer = styled.div`
   justify-content: space-evenly;
   display: flex;
   gap: 1rem;
   flex-direction: column;
-  font-family: 'Zen Tokyo Zoo', cursive;
   position: relative;
   height: 100%;
+  margin-top: 5rem;
 `;
 
 const Cell = styled.div<ICellProps>`
@@ -29,12 +28,7 @@ const Cell = styled.div<ICellProps>`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-top: ${({ borderTop }) => borderTop && '3px solid #a42ef2'};
-  border-left: ${({ borderLeft }) => borderLeft && '3px solid #a42ef2'};
-  border-bottom: ${({ borderBottom }) => borderBottom && '3px solid #a42ef2'};
-  border-right: ${({ borderRight }) => borderRight && '3px solid #a42ef2'};
   transition: all 270ms ease-in-out;
-  background: #a42ef2;
 `;
 
 interface ICellProps {
@@ -50,6 +44,7 @@ export type IBoard = Array<Symbol>;
 export interface IStartGame {
   start: boolean;
   symbol: 'x' | 'o';
+  room: Room;
 }
 
 type Result = 'Lost' | 'Won' | 'Draw';
@@ -60,7 +55,7 @@ const Online = () => {
   const [winner, setWinner] = useState<Symbol>(null);
   const [winnerIndex, setWinnerIndex] = useState<number[] | null>(null);
   const [winnerClass, setWinnerClass] = useState('');
-
+  const [isResetting, setIsResetting] = useState(false);
   const {
     gameEvents: { isPlayerTurn },
     myPlayer: { color, username, symbol, isComputer },
@@ -68,13 +63,22 @@ const Online = () => {
     setGameEvents,
     gameConfig,
     gameEvents,
-  } = useContext(gameContext);
+    clearStore,
+  } = useGameStore();
   const [matrix, setMatrix] = useState<IBoard>(Array(9).fill(null));
 
-  const handleGameEvents = (prop: string, value: boolean) => {
-    setGameEvents((prev: any) => ({ ...prev, [prop]: value }));
-    console.log('handleGameEvents', prop, value, gameEvents);
-  };
+  useEffect(() => {
+    const state = router.location.state as GameConfig;
+    console.log('state', otherPlayer, username);
+    if (!gameConfig || !state || !gameConfig.gameType || gameConfig.gameType !== state.gameType) {
+      clearStore();
+      router.navigate('/');
+    }
+    setGameEvents({ ...gameEvents, isGameStarted: true });
+    handleGameUpdate();
+    handleGameStart();
+    handleGameWin();
+  }, []);
 
   const checkWinner = () => {
     for (const element of winLines) {
@@ -85,7 +89,7 @@ const Online = () => {
 
       if (matrix[a] === symbol && matrix[b] === symbol && matrix[c] === symbol) {
         console.log('winner: ', symbol, [a, b, c]);
-        gameService.gameWin(socket, { message: 'Lost', indexes: [a, b, c] });
+        gameService.gameWin(socket, { message: 'Lost', indexes: [a, b, c], winner: symbol });
         handleResult('Won');
         setWinner(symbol);
         setWinnerIndex([a, b, c]);
@@ -95,24 +99,26 @@ const Online = () => {
         matrix[b] === otherPlayer.symbol &&
         matrix[c] === otherPlayer.symbol
       ) {
-        gameService.gameWin(socket, { message: 'Won', indexes: [a, b, c] });
+        gameService.gameWin(socket, { message: 'Won', indexes: [a, b, c], winner: symbol });
         handleResult('Lost');
         console.log('winner: ', otherPlayer.symbol, [a, b, c]);
         setWinnerIndex([a, b, c]);
         setWinner(otherPlayer.symbol);
         setWinnerClass(winningCombinationClasses([a, b, c]));
       } else if (winner === null && _.isEmpty(emptyIndexes())) {
-        gameService.gameWin(socket, { message: 'Draw', indexes: [a, b, c] });
+        gameService.gameWin(socket, { message: 'Draw', indexes: [a, b, c], winner: symbol });
         handleResult('Draw');
       }
     }
   };
 
   const handleGameUpdate = () => {
-    if (socketService.socket)
-      gameService.onGameUpdate(socketService.socket, (newMatrix) => {
-        console.log('onGameUpdate', newMatrix);
-        handleGameEvents('isPlayerTurn', true);
+    const socket = socketService.socket;
+    if (socket)
+      gameService.onGameUpdate(socket, (newMatrix, socketId) => {
+        console.log('onGameUpdate', newMatrix, socketId, socketId !== socket.id);
+        setGameEvents({ ...gameEvents, isPlayerTurn: socketId !== socket.id });
+        console.log('isPlayerTurn', isPlayerTurn);
         checkWinner();
         setMatrix(newMatrix);
         setTimeout(() => {
@@ -125,22 +131,30 @@ const Online = () => {
     if (socketService.socket)
       gameService.onStartGame(socketService.socket, (options) => {
         console.log('handleGameStart', options, symbol);
-        handleGameEvents('isGameStarted', true);
-        handleGameEvents('isPlayerTurn', options.symbol === symbol && options.start);
+        setGameEvents({
+          ...gameEvents,
+          isGameStarted: true,
+          isPlayerTurn: options.symbol === symbol && options.start,
+        });
       });
   };
 
   const handleGameWin = () => {
     if (socketService.socket)
-      gameService.onGameWin(socketService.socket, (message, indexes) => {
+      gameService.onGameWin(socketService.socket, (message, indexes, winner, newPlayerTurn) => {
         console.log('Here', message, matrix);
         if (message !== 'Draw') {
           setWinnerIndex(indexes);
           setWinnerClass(winningCombinationClasses(indexes));
         }
-        handleGameEvents('isPlayerTurn', false);
+        setGameEvents({ ...gameEvents, isPlayerTurn: false });
         handleResult(message as Result);
         checkWinner();
+        setIsResetting(true);
+        setTimeout(() => {
+          reset();
+          setGameEvents({ ...gameEvents, isPlayerTurn: newPlayerTurn === symbol });
+        }, 2000);
       });
   };
 
@@ -149,6 +163,7 @@ const Online = () => {
   };
 
   const handleResult = (result: Result) => {
+    setIsResetting(true);
     if (result === 'Draw') {
       setResult('Draw!');
     } else if (result === 'Lost') {
@@ -156,42 +171,39 @@ const Online = () => {
     } else if (result === 'Won') {
       setResult('You Won!');
     }
+    setTimeout(() => {
+      reset();
+    }, 3000);
   };
 
-  useEffect(() => {
-    const state = router.location.state as GameConfig;
-    if (!gameConfig || gameConfig.gameType !== state.gameType) {
-      router.navigate('/');
-    }
-    handleGameEvents('isGameStarted', true);
-    handleGameUpdate();
-    handleGameStart();
-    handleGameWin();
-  }, []);
-
   const handleClick = (index: number) => {
-    if (winner !== null || !isPlayerTurn || winnerIndex) {
+    if (winner !== null || !isPlayerTurn || winnerIndex || isResetting) {
       return;
     }
 
-    let newboard = matrix;
+    let newBoard = matrix;
 
-    if (newboard[index] !== null) {
+    if (newBoard[index] !== null) {
       return;
     }
 
-    newboard[index] = isPlayerTurn ? symbol : otherPlayer.symbol;
-    setMatrix(newboard);
-    console.log('handleClick', newboard);
+    newBoard[index] = isPlayerTurn ? symbol : otherPlayer.symbol;
+    setMatrix(newBoard);
+    console.log('handleClick', newBoard);
     if (socketService.socket) {
-      gameService.updateGame(socketService.socket, newboard);
+      gameService.updateGame(socketService.socket, newBoard);
     }
-    handleGameEvents('isPlayerTurn', false);
+    setGameEvents({ ...gameEvents, isPlayerTurn: false });
     checkWinner();
   };
 
   const reset = () => {
     setMatrix(Array(9).fill(null));
+    setWinner(null);
+    setWinnerIndex(null);
+    setWinnerClass('');
+    setResult('');
+    setIsResetting(false);
   };
 
   const emptyIndexes = () => {
@@ -228,29 +240,29 @@ const Online = () => {
       borderBottom={index < 7}
       borderTop={index > 2}
     >
-      <div className="rounded-2xl bg-main hover:bg-main_side_hover" style={{ height: '90%', width: '90%' }}>
-        {box ? (box === 'x' ? X(getSymbolColor(box)) : O(getSymbolColor(box))) : null}
-      </div>
+      {box ? (box === 'x' ? X(getSymbolColor(box)) : O(getSymbolColor(box))) : null}
     </Cell>
   ));
 
   return (
     <GameContainer>
       {result && (
-        <div className="flex justify-center">
-          <span className="blink text-white text-md">{result}</span>
+        <div className="mb-4 text-white font-medium">
+          <h1 className="text-3xl text-center">{result}</h1>
         </div>
       )}
       <div className="flex flex-row justify-center gap-14 w-full">
         <div className="flex justify-center items-center flex-col gap-4">
-          <PlayerCard
-            color={color}
-            symbol={symbol}
-            username={username || 'Player 1'}
-            isComputer={isComputer}
-            isPlayer1={true}
-          ></PlayerCard>
-          <span className="blink text-white text-md">{isPlayerTurn && !result ? 'My Turn' : ''}</span>
+          <div className="h-1/2 text-center">
+            <PlayerCard
+              color={color}
+              symbol={symbol}
+              username={username || 'Player 1'}
+              isComputer={isComputer}
+              isPlayer1={true}
+            ></PlayerCard>
+            <span className="blink mt-2 text-white text-md">{isPlayerTurn && !winner ? 'My Turn' : ''}</span>
+          </div>
         </div>
 
         <div
@@ -264,28 +276,19 @@ const Online = () => {
         </div>
 
         <div className="flex justify-center items-center flex-col gap-4">
-          <PlayerCard
-            color={otherPlayer.color}
-            symbol={otherPlayer.symbol}
-            username={otherPlayer.username || 'Player 2'}
-            isComputer={otherPlayer.isComputer}
-            isPlayer1={false}
-          ></PlayerCard>
-          <span className="blink text-white text-md">{!isPlayerTurn && !result ? 'Your Turn' : ''}</span>
+          <div className="h-1/2 text-center">
+            <PlayerCard
+              color={otherPlayer.color}
+              symbol={otherPlayer.symbol}
+              username={otherPlayer.username || 'Player 2'}
+              isComputer={otherPlayer.isComputer}
+              isPlayer1={false}
+            ></PlayerCard>
+            <span className="blink mt-2 text-white text-md">{!isPlayerTurn && !winner ? 'Your Turn' : ''}</span>
+          </div>
         </div>
       </div>
-      <div className="grid justify-start items-center w-full fluid-grid px-4">
-        <div>
-          <Chat></Chat>
-        </div>
-        <div>
-          {winnerIndex && (
-            <Button className="btn" type="button">
-              {winner || _.isEmpty(emptyIndexes()) ? 'New Game' : 'Reset'}
-            </Button>
-          )}
-        </div>
-      </div>
+      <Chat />
     </GameContainer>
   );
 };
