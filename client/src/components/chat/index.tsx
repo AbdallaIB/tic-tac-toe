@@ -278,7 +278,7 @@ const Chat = () => {
         <IconButton
           className="relative"
           onClick={() => {
-            if (showChat) setNotifications(0);
+            setNotifications(0);
             setShowChat(showChat ? false : true);
             console.log('showChat', showChat);
           }}
