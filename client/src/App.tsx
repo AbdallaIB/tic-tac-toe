@@ -8,7 +8,7 @@ import CountdownTimer from '@components/countdown-timer';
 import socketService from '@services/SocketService';
 import { FullScreen, useFullScreenHandle } from 'react-full-screen';
 import { useRouter } from '@lib/hooks/useRouter';
-import logo from '@assets/icons/logo.svg';
+import logo from '@assets/icons/logo_bold.png';
 import useToast from '@lib/hooks/useToast';
 import { Toaster } from 'react-hot-toast';
 import Modal from '@components/modal';
@@ -50,16 +50,12 @@ const App = () => {
     navigate('/');
   };
 
-  const connectSocket = async () => {
-    await socketService.connect(process.env.SOCKET_ENDPOINT as string).catch((err: Error) => {
+  useEffect( async () => {
+      await socketService.connect(process.env.SOCKET_ENDPOINT as string).catch((err: Error) => {
       console.log('Error: ', err);
       toast.error(err ? err.message : 'Something went wrong');
     });
     console.log('connected: ', socketService.socket);
-  };
-
-  useEffect(() => {
-    connectSocket();
     setTimeout(() => {
       setIsLoading(false);
     }, 1500);
