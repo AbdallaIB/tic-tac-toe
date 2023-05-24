@@ -50,12 +50,16 @@ const App = () => {
     navigate('/');
   };
 
-  useEffect( async () => {
-      await socketService.connect(process.env.SOCKET_ENDPOINT as string).catch((err: Error) => {
+  const connectSocket = async () => {
+    await socketService.connect(process.env.SOCKET_ENDPOINT as string).catch((err: Error) => {
       console.log('Error: ', err);
       toast.error(err ? err.message : 'Something went wrong');
     });
     console.log('connected: ', socketService.socket);
+  };
+
+  useEffect(() => {
+    connectSocket();
     setTimeout(() => {
       setIsLoading(false);
     }, 1500);
