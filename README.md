@@ -151,7 +151,7 @@ Use this space to list resources you find helpful and would like to give credit 
 [issues-url]: https://github.com/abdallaIb/tic-tac-toe/issues
 [license-shield]: https://img.shields.io/github/license/abdallaIb/tic-tac-toe.svg?style=for-the-badge
 [license-url]: https://github.com/abdallaIb/tic-tac-toe/blob/master/LICENSE.txt
-[product-screenshot]: https://www.abdalla.pro/assets/images/8c5dd3981ccc58706c5d4b6961f09070.png
+[product-screenshot]: https://abdalla.tech/tic-tac-toe.png
 [react.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
 [react-url]: https://reactjs.org/
 [node.js]: https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white
