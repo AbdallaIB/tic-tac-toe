@@ -4,7 +4,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/abdallaIb/tic-tac-toe">
-    <img src="https://tictactoe-ib.netlify.app/assets/images/6cc40c636a69d23a7b4cc88239555adc.svg" alt="Logo" width="600" height="200">
+    <img src="https://tictactoe-ib.netlify.app/assets/images/319941ac176e7f42c5f0e44e540efe43.png" alt="Logo" width="600" height="200">
   </a>
 
 [![Top Language][top-language-shield]][top-language-url]
